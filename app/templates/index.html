@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card hero">
+  <h2>工作台</h2>
+  <p id="usage-line" class="sub">加载用量…</p>
+  <div class="steps">
+    <span class="step-pill">1. 上传策略知识库</span>
+    <span class="step-pill">2. 上传问卷</span>
+    <span class="step-pill">3. 一键生成答案</span>
+    <span class="step-pill">4. 审阅入库 · 导出</span>
+  </div>
+</section>
+
+<div class="grid">
+  <section class="card">
+    <h2>知识库</h2>
+    <p class="sub">支持 PDF / TXT / Markdown / <strong>DOCX</strong>。类型可选策略或历史答卷。</p>
+    <form id="kb-form">
+      <div class="row">
+        <div>
+          <label for="kb-title">标题（可选）</label>
+          <input id="kb-title" type="text" placeholder="如：信息安全策略 v2" />
+        </div>
+        <div>
+          <label for="kb-type">类型</label>
+          <select id="kb-type">
+            <option value="policy">策略 Policy</option>
+            <option value="past_answer">历史答卷</option>
+          </select>
+        </div>
+      </div>
+      <label for="kb-file">文件</label>
+      <input id="kb-file" type="file" accept=".pdf,.txt,.md,.markdown,.docx" required />
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">上传到知识库</button>
+      </div>
+    </form>
+    <div class="list" id="kb-list"><div class="empty">暂无文档</div></div>
+  </section>
+
+  <section class="card">
+    <h2>安全问卷</h2>
+    <p class="sub">支持 CSV / XLSX。需包含 Question 列（或中文「问题」）。</p>
+    <form id="qn-form">
+      <label for="qn-name">名称（可选）</label>
+      <input id="qn-name" type="text" placeholder="如：Acme Vendor Security 2026" />
+      <label for="qn-file" style="margin-top:0.75rem">问卷文件</label>
+      <input id="qn-file" type="file" accept=".csv,.xlsx,.xlsm" required />
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">上传问卷</button>
+      </div>
+    </form>
+    <div class="list" id="qn-list"><div class="empty">暂无问卷</div></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    SecurityFill.loadHome();
+  });
+</script>
+{% endblock %}

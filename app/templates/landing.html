@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card hero landing-hero">
+  <h2>把客户安全问卷从「加班填表」变成「审阅导出」</h2>
+  <p>
+    上传安全策略与历史答卷，AI 按证据起草答案、标注置信度与来源。
+    人工审阅后一键导出 XLSX/CSV。适合买不起 Vanta 问卷模块的早期 SaaS。
+  </p>
+  <div class="actions" style="margin-top:1.1rem">
+    <a class="btn btn-primary" href="/register">免费开始</a>
+    <a class="btn btn-secondary" href="/login">已有账号登录</a>
+  </div>
+  <div class="steps" style="margin-top:1.2rem">
+    <span class="step-pill">注册工作区</span>
+    <span class="step-pill">上传策略</span>
+    <span class="step-pill">导入问卷</span>
+    <span class="step-pill">生成 · 审阅 · 入库</span>
+    <span class="step-pill">导出交付</span>
+  </div>
+</section>
+
+<div class="grid three">
+  <section class="card">
+    <h2>证据驱动</h2>
+    <p class="sub">答案必须锚定策略/历史答卷，禁止胡编 SOC2/ISO 等认证。</p>
+  </section>
+  <section class="card">
+    <h2>答案库复用</h2>
+    <p class="sub">审阅通过的题目自动入库，下次相似问卷直接命中高置信度答案。</p>
+  </section>
+  <section class="card">
+    <h2>个人开发友好</h2>
+    <p class="sub">Free 可验证，Pro {{ pro_price }}。支持 Stripe 或本地 mock 升级。</p>
+  </section>
+</div>
+
+<section class="card" style="margin-top:1rem">
+  <h2>演示账号</h2>
+  <p class="sub">本地种子用户（Pro 已解锁）：<code>{{ demo_email }}</code> / <code>{{ demo_password }}</code></p>
+</section>
+{% endblock %}

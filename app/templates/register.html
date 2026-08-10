@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}注册 · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h2>免费注册</h2>
+  <p class="sub">创建即得独立 Workspace。Free 计划可上传策略、完成小问卷验证。</p>
+  <form id="register-form">
+    <label>姓名</label>
+    <input type="text" id="name" placeholder="可选" />
+    <label style="margin-top:0.75rem">邮箱</label>
+    <input type="email" id="email" required />
+    <label style="margin-top:0.75rem">密码（至少 6 位）</label>
+    <input type="password" id="password" required minlength="6" />
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">创建账号</button>
+      <a class="btn btn-secondary" href="/login">已有账号</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await SecurityFill.register(
+      document.getElementById('email').value,
+      document.getElementById('password').value,
+      document.getElementById('name').value
+    );
+    location.href = '/app';
+  } catch (err) {
+    SecurityFill.toast(err.message);
+  }
+});
+</script>
+{% endblock %}

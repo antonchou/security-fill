@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="nav">
+      <a class="brand" href="{% if user %}/app{% else %}/{% endif %}" style="text-decoration:none;color:inherit">
+        <div class="logo">SF</div>
+        <div>
+          <h1>{{ app_name }}</h1>
+          <p>Security questionnaire AI filler</p>
+        </div>
+      </a>
+      <div class="nav-right">
+        <div class="badge {% if llm_enabled %}ok{% else %}warn{% endif %}" id="llm-badge">
+          {% if llm_enabled %}LLM: ON{% else %}LLM: keyword mode{% endif %}
+        </div>
+        {% if user %}
+          <span class="badge" id="plan-badge">{{ user.plan|upper }}</span>
+          <a class="nav-link" href="/app">工作台</a>
+          <a class="nav-link" href="/app/library">答案库</a>
+          <a class="nav-link" href="/pricing">定价</a>
+          <button class="btn btn-secondary btn-sm" id="btn-logout" type="button">退出</button>
+        {% else %}
+          <a class="nav-link" href="/pricing">定价</a>
+          <a class="nav-link" href="/login">登录</a>
+          <a class="btn btn-primary btn-sm" href="/register">免费注册</a>
+        {% endif %}
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

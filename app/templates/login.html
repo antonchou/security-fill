@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}登录 · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h2>登录</h2>
+  <p class="sub">使用工作区账号登录后继续填写问卷。</p>
+  <form id="login-form">
+    <label>邮箱</label>
+    <input type="email" id="email" required placeholder="{{ demo_email }}" value="{{ demo_email }}" />
+    <label style="margin-top:0.75rem">密码</label>
+    <input type="password" id="password" required value="{{ demo_password }}" />
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">登录</button>
+      <a class="btn btn-secondary" href="/register">注册</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await SecurityFill.login(
+      document.getElementById('email').value,
+      document.getElementById('password').value
+    );
+    location.href = '/app';
+  } catch (err) {
+    SecurityFill.toast(err.message);
+  }
+});
+</script>
+{% endblock %}

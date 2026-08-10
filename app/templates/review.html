@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Review · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="review-header">
+  <div>
+    <a href="/app">← 返回工作台</a>
+    <h2 id="qn-title" style="margin:0.35rem 0 0">加载中…</h2>
+    <p class="sub" id="qn-sub" style="margin:0.25rem 0 0"></p>
+  </div>
+  <div class="actions">
+    <button class="btn btn-primary" id="btn-generate">一键生成全部答案</button>
+    <a class="btn btn-secondary" id="btn-export-xlsx" href="#">导出 XLSX</a>
+    <a class="btn btn-secondary" id="btn-export-csv" href="#">导出 CSV</a>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="filters" style="margin-top:1rem">
+  <button class="btn btn-secondary btn-sm active" data-filter="all">全部</button>
+  <button class="btn btn-secondary btn-sm" data-filter="low">低置信度</button>
+  <button class="btn btn-secondary btn-sm" data-filter="library">答案库命中</button>
+  <button class="btn btn-secondary btn-sm" data-filter="pending">待处理</button>
+  <button class="btn btn-secondary btn-sm" data-filter="reviewed">已审阅</button>
+</div>
+
+<div id="questions"><div class="empty">加载问题…</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    SecurityFill.loadReview({{ qn_id }});
+  });
+</script>
+{% endblock %}

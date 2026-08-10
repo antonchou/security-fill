@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}定价 · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="card hero">
+  <h2>简单定价</h2>
+  <p>从 Free 验证需求，需要量上来再升 Pro。无年付绑定压力（可 mock 演示）。</p>
+</section>
+<div class="grid">
+  <section class="card">
+    <h2>Free</h2>
+    <p class="price">$0</p>
+    <ul class="plan-list">
+      <li>5 份知识库文档</li>
+      <li>每月 3 份问卷</li>
+      <li>每份最多 50 题</li>
+      <li>答案库 100 条</li>
+    </ul>
+    <a class="btn btn-secondary" href="{% if user %}/app{% else %}/register{% endif %}">开始使用</a>
+  </section>
+  <section class="card plan-pro">
+    <h2>Pro</h2>
+    <p class="price">{{ pro_price }}</p>
+    <ul class="plan-list">
+      <li>200 份知识库文档</li>
+      <li>每月 200 份问卷</li>
+      <li>每份最多 2000 题</li>
+      <li>答案库 10000 条</li>
+      <li>优先支持 LLM 高质量作答</li>
+    </ul>
+    <button class="btn btn-primary" id="btn-upgrade" type="button">升级 Pro</button>
+    <p class="sub" id="billing-note" style="margin-top:0.75rem"></p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const note = document.getElementById('billing-note');
+  const btn = document.getElementById('btn-upgrade');
+  try {
+    const s = await SecurityFill.api('/api/auth/session');
+    if (!s.authenticated) {
+      btn.textContent = '注册后升级';
+      btn.onclick = () => location.href = '/register';
+      return;
+    }
+    const b = await SecurityFill.api('/api/billing/status');
+    note.textContent = b.stripe_enabled
+      ? '将跳转 Stripe Checkout'
+      : '本地模式：点击后即时 mock 升级（无需 Stripe 密钥）';
+    if (b.plan === 'pro') {
+      btn.textContent = '已是 Pro';
+      btn.disabled = true;
+    }
+    btn.onclick = async () => {
+      try {
+        const r = await SecurityFill.api('/api/billing/checkout', { method: 'POST' });
+        SecurityFill.toast(r.message || '升级成功');
+        if (r.url) location.href = r.url;
+      } catch (e) {
+        SecurityFill.toast(e.message);
+      }
+    };
+  } catch (e) {
+    note.textContent = e.message;
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}答案库 · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="card hero">
+  <h2>答案库</h2>
+  <p class="sub">审阅通过的题目会自动入库。生成新问卷时优先复用高置信度历史答案。</p>
+</section>
+
+<section class="card">
+  <form id="lib-form">
+    <label>问题</label>
+    <textarea id="lib-q" required placeholder="Do you enforce MFA for production systems?"></textarea>
+    <label style="margin-top:0.75rem">标准答案</label>
+    <textarea id="lib-a" required placeholder="Yes — MFA is required for all production systems via Okta…"></textarea>
+    <label style="margin-top:0.75rem">章节（可选）</label>
+    <input id="lib-s" type="text" placeholder="Access Control" />
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">保存到答案库</button>
+    </div>
+  </form>
+</section>
+
+<div class="list" id="lib-list" style="margin-top:1rem;max-height:none"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => SecurityFill.loadLibrary());
+</script>
+{% endblock %}
