@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import uuid
 from pathlib import Path
 
@@ -11,7 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth import AuthDep
-from app.config import UPLOAD_DIR
+from app.config import (
+    MAX_KNOWLEDGE_UPLOAD_BYTES,
+    MAX_QUESTIONNAIRE_UPLOAD_BYTES,
+    UPLOAD_DIR,
+)
 from app.database import Question, Questionnaire, get_db
 from app.services import export_svc
 from app.services.answer_engine import draft_all, draft_one
@@ -64,6 +67,46 @@ def status(auth: AuthDep, db: Session = Depends(get_db)):
 
 # ── Knowledge ──────────────────────────────────────────────
 
+_UPLOAD_CHUNK = 1024 * 1024  # 1 MiB
+
+
+async def _save_upload(
+    file: UploadFile, allowed_suffixes: set[str], max_bytes: int
+) -> tuple[Path, str]:
+    """Stream an upload to a server-generated path, enforcing a size cap.
+
+    The client filename never becomes part of the storage path — only its
+    validated suffix is appended to a UUID. Returns (path, original_stem).
+    """
+    if not file.filename:
+        raise HTTPException(400, "Missing filename")
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in allowed_suffixes:
+        raise HTTPException(
+            400, f"Supported extensions: {', '.join(sorted(allowed_suffixes))}"
+        )
+    dest = UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
+    written = 0
+    try:
+        with dest.open("wb") as out:
+            while True:
+                chunk = await file.read(_UPLOAD_CHUNK)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > max_bytes:
+                    raise HTTPException(
+                        413, f"File exceeds the {max_bytes // (1024 * 1024)} MB upload limit."
+                    )
+                out.write(chunk)
+    except HTTPException:
+        dest.unlink(missing_ok=True)
+        raise
+    except Exception as e:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(400, f"Upload failed: {e}") from e
+    return dest, Path(file.filename).stem
+
 
 @router.get("/knowledge")
 def knowledge_list(auth: AuthDep, db: Session = Depends(get_db)):
@@ -91,29 +134,22 @@ async def knowledge_upload(
     db: Session = Depends(get_db),
 ):
     assert_can_upload_doc(db, auth)
-    if not file.filename:
-        raise HTTPException(400, "Missing filename")
-    suffix = Path(file.filename).suffix.lower()
-    if suffix not in {".pdf", ".txt", ".md", ".markdown", ".docx"}:
-        raise HTTPException(400, "Supported: PDF, TXT, MD, DOCX")
-
-    dest = UPLOAD_DIR / f"{uuid.uuid4().hex}_{file.filename}"
-    with dest.open("wb") as f:
-        shutil.copyfileobj(file.file, f)
+    dest, stem = await _save_upload(
+        file, {".pdf", ".txt", ".md", ".markdown", ".docx"}, MAX_KNOWLEDGE_UPLOAD_BYTES
+    )
 
     try:
         doc = await ingest_document(
             db,
             dest,
-            title=title or Path(file.filename).stem,
+            title=title or stem,
             workspace_id=auth.workspace.id,
             source_type=source_type if source_type in {"policy", "past_answer"} else "policy",
         )
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     finally:
-        if dest.exists():
-            dest.unlink(missing_ok=True)
+        dest.unlink(missing_ok=True)
 
     return {"id": doc.id, "title": doc.title, "chunk_count": doc.chunk_count}
 
@@ -174,27 +210,23 @@ async def qn_upload(
     name: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    if not file.filename:
-        raise HTTPException(400, "Missing filename")
-    suffix = Path(file.filename).suffix.lower()
-    if suffix not in {".csv", ".xlsx", ".xlsm"}:
-        raise HTTPException(400, "Supported: CSV, XLSX")
-
-    dest = UPLOAD_DIR / f"{uuid.uuid4().hex}_{file.filename}"
-    with dest.open("wb") as f:
-        shutil.copyfileobj(file.file, f)
+    dest, stem = await _save_upload(
+        file, {".csv", ".xlsx", ".xlsm"}, MAX_QUESTIONNAIRE_UPLOAD_BYTES
+    )
 
     try:
         parsed = parse_questionnaire(dest)
     except Exception as e:
-        dest.unlink(missing_ok=True)
         raise HTTPException(400, str(e)) from e
+    finally:
+        # Parsed rows are persisted to the DB; the raw file is not needed.
+        dest.unlink(missing_ok=True)
 
     assert_can_upload_questionnaire(db, auth, len(parsed))
 
     qn = Questionnaire(
         workspace_id=auth.workspace.id,
-        name=name or Path(file.filename).stem,
+        name=name or stem,
         filename=dest.name,
         status="uploaded",
         question_count=len(parsed),

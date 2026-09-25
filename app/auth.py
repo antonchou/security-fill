@@ -12,7 +12,13 @@ from fastapi import Cookie, Depends, HTTPException, Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy.orm import Session
 
-from app.config import APP_SECRET, PLAN_LIMITS, SESSION_COOKIE, SESSION_MAX_AGE
+from app.config import (
+    APP_SECRET,
+    PLAN_LIMITS,
+    SESSION_COOKIE,
+    SESSION_COOKIE_SECURE,
+    SESSION_MAX_AGE,
+)
 from app.database import User, Workspace, get_db
 
 
@@ -58,7 +64,7 @@ def set_session(response: Response, user_id: int) -> None:
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=SESSION_COOKIE_SECURE,
         path="/",
     )
 

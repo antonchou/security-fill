@@ -80,7 +80,13 @@ def create_checkout(auth: AuthDep, db: Session = Depends(get_db)):
 
 @router.post("/mock-upgrade")
 def mock_upgrade(auth: AuthDep, db: Session = Depends(get_db)):
-    """Explicit mock upgrade endpoint for demos / e2e tests."""
+    """Explicit mock upgrade endpoint for demos / e2e tests.
+
+    Only available when real Stripe billing is NOT configured — otherwise it
+    would let any signed-in user grant themselves Pro without paying.
+    """
+    if stripe_enabled():
+        raise HTTPException(403, "Mock billing is disabled while Stripe is configured.")
     auth.user.plan = PLAN_PRO
     db.commit()
     return {"ok": True, "plan": PLAN_PRO}
@@ -88,6 +94,8 @@ def mock_upgrade(auth: AuthDep, db: Session = Depends(get_db)):
 
 @router.post("/mock-downgrade")
 def mock_downgrade(auth: AuthDep, db: Session = Depends(get_db)):
+    if stripe_enabled():
+        raise HTTPException(403, "Mock billing is disabled while Stripe is configured.")
     auth.user.plan = "free"
     auth.user.stripe_subscription_id = ""
     db.commit()

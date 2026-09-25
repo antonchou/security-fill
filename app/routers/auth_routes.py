@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -16,10 +16,19 @@ from app.auth import (
 )
 from app.database import User, Workspace, get_db
 from app.services.plans import usage_snapshot
+from app.services.rate_limit import SlidingWindowLimiter
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+# Brute-force guard: max 8 failed logins per email (+client IP) per 5 minutes.
+_login_failures = SlidingWindowLimiter(max_events=8, window_seconds=300)
+
+
+def _login_rate_key(request: Request, email: str) -> str:
+    client = request.client.host if request.client else "unknown"
+    return f"{email}@{client}"
 
 
 class RegisterIn(BaseModel):
@@ -70,11 +79,15 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_db)
 
 
 @router.post("/login")
-def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
+def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
     email = body.email.strip().lower()
+    rate_key = _login_rate_key(request, email)
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(body.password, user.password_hash):
+        if not _login_failures.allow(rate_key):
+            raise HTTPException(429, "Too many failed login attempts. Try again in a few minutes.")
         raise HTTPException(401, "Invalid email or password")
+    _login_failures.reset(rate_key)
     ws = (
         db.query(Workspace)
         .filter(Workspace.owner_id == user.id)

@@ -56,9 +56,11 @@ python scripts/e2e_product_flow.py
 | Env | Meaning |
 |-----|---------|
 | `OPENAI_API_KEY` | Enable LLM answers |
-| `APP_SECRET` | Session signing secret |
-| `STRIPE_*` | Real Checkout; empty = mock Pro upgrade |
-| `SEED_DEMO` | Create demo user on startup |
+| `APP_SECRET` | Session signing secret (required in production) |
+| `ENVIRONMENT` | `dev` (default) or `production` — production enforces a strong `APP_SECRET`, disables the demo seed, and marks the session cookie `Secure` |
+| `STRIPE_*` | Real Checkout; empty = mock Pro upgrade (mock endpoints return 403 once Stripe is configured) |
+| `SEED_DEMO` | Create demo user on startup (forced off in production) |
+| `MAX_KNOWLEDGE_UPLOAD_BYTES` / `MAX_QUESTIONNAIRE_UPLOAD_BYTES` | Upload size caps, default 20 MB / 10 MB |
 
 ### Free vs Pro limits
 

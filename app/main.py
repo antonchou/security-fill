@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -12,6 +13,7 @@ from app.config import (
     DEMO_EMAIL,
     DEMO_PASSWORD,
     PRO_PRICE_DISPLAY,
+    SEED_DEMO,
     SESSION_COOKIE,
 )
 from app.database import SessionLocal, User, init_db
@@ -23,18 +25,20 @@ from app.services.seed import ensure_demo_user
 
 BASE = Path(__file__).resolve().parent
 
-app = FastAPI(title=APP_NAME, version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    ensure_demo_user()
+    yield
+
+
+app = FastAPI(title=APP_NAME, version="1.0.0", lifespan=lifespan)
 app.include_router(api_router)
 app.include_router(auth_router)
 app.include_router(billing_router)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE / "templates"))
-
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
-    ensure_demo_user()
 
 
 def _page_ctx(request: Request, **extra):
@@ -46,17 +50,20 @@ def _page_ctx(request: Request, **extra):
             uid = read_session_token(token)
             if uid:
                 user = db.get(User, uid)
-        return {
+        ctx = {
             "request": request,
             "app_name": APP_NAME,
             "tagline": APP_TAGLINE,
             "llm_enabled": has_llm(),
             "user": user,
-            "demo_email": DEMO_EMAIL,
-            "demo_password": DEMO_PASSWORD,
             "pro_price": PRO_PRICE_DISPLAY,
             **extra,
         }
+        if SEED_DEMO:
+            # Demo credentials are only rendered when the demo seed is active.
+            ctx["demo_email"] = DEMO_EMAIL
+            ctx["demo_password"] = DEMO_PASSWORD
+        return ctx
     finally:
         db.close()
 
